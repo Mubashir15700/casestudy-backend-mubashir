@@ -32,17 +32,22 @@ enum JobStatus {
   FAILED
 }
 
+enum JobType {
+  SEND_RECEIPT_EMAIL
+  PROCESS_PAYMENT_WEBHOOK
+}
+
 model User {
-  id           String   @id @default(uuid())
-  email        String   @unique
+  id           String @id @default(uuid())
+  email        String @unique
   passwordHash String
   fullName     String
   phoneNumber  String
 
-  isActive     Boolean  @default(true)
+  isActive Boolean @default(true)
 
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   wallet        Wallet?
   refreshTokens RefreshToken[]
@@ -71,17 +76,17 @@ model Wallet {
 }
 
 model RefreshToken {
-  id         String    @id @default(uuid())
+  id String @id @default(uuid())
 
-  userId     String
+  userId String
 
-  tokenHash  String
+  tokenHash String
 
-  expiresAt  DateTime
+  expiresAt DateTime
 
-  revokedAt  DateTime?
+  revokedAt DateTime?
 
-  createdAt  DateTime  @default(now())
+  createdAt DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id])
 
@@ -99,10 +104,12 @@ model Transaction {
 
   amount Int
 
-  type TransactionType
+  type   TransactionType
   status TransactionStatus
 
   referenceId String @unique
+
+  idempotencyKey String? @unique
 
   metadata Json?
 
@@ -110,14 +117,13 @@ model Transaction {
 
   @@index([fromWalletId])
   @@index([toWalletId])
-
   @@map("transactions")
 }
 
 model Job {
   id String @id @default(uuid())
 
-  type String
+  type JobType
 
   payload Json
 
@@ -135,6 +141,5 @@ model Job {
 
   @@index([status])
   @@index([nextRetryAt])
-
   @@map("jobs")
 }

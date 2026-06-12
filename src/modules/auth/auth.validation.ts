@@ -21,3 +21,9 @@ export const refreshSchema = z.object({
 });
 
 export type RefreshDto = z.infer<typeof refreshSchema>;
+
+export const logoutSchema = z.object({
+  refreshToken: z.string().min(1),
+});
+
+export type LogoutDto = z.infer<typeof logoutSchema>;

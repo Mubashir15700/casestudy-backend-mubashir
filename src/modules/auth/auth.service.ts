@@ -4,6 +4,7 @@ import { prisma } from "../../config/db";
 import { LoginDto, RegisterDto, RefreshDto } from "./auth.validation";
 import { generateAccessToken } from "../../utils/jwt";
 import { generateRefreshToken } from "../../utils/token";
+import { AppError } from "../../utils/AppError";
 
 export async function registerUser(data: RegisterDto) {
   const existingUser = await prisma.user.findUnique({
@@ -13,7 +14,7 @@ export async function registerUser(data: RegisterDto) {
   });
 
   if (existingUser) {
-    throw new Error("Email already exists");
+    throw new AppError(400, "Email already exists");
   }
 
   const passwordHash = await bcrypt.hash(data.password, 12);
@@ -52,7 +53,7 @@ export async function loginUser(data: LoginDto) {
   });
 
   if (!user) {
-    throw new Error("Invalid credentials");
+    throw new AppError(400, "Invalid credentials");
   }
 
   const passwordMatch = await bcrypt.compare(
@@ -61,7 +62,7 @@ export async function loginUser(data: LoginDto) {
   );
 
   if (!passwordMatch) {
-    throw new Error("Invalid credentials");
+    throw new AppError(400, "Invalid credentials");
   }
 
   const accessToken = generateAccessToken(user.id);
@@ -95,20 +96,19 @@ export async function refreshAccessToken(
     .update(data.refreshToken)
     .digest("hex");
 
-  const storedToken =
-    await prisma.refreshToken.findFirst({
-      where: {
-        tokenHash,
-        revokedAt: null,
-      },
-    });
+  const storedToken = await prisma.refreshToken.findFirst({
+    where: {
+      tokenHash,
+      revokedAt: null,
+    },
+  });
 
   if (!storedToken) {
-    throw new Error("Invalid refresh token");
+    throw new AppError(400, "Invalid refresh token");
   }
 
   if (storedToken.expiresAt < new Date()) {
-    throw new Error("Refresh token expired");
+    throw new AppError(400, "Refresh token expired");
   }
 
   const accessToken = generateAccessToken(storedToken.userId);
@@ -147,5 +147,41 @@ export async function refreshAccessToken(
   return {
     accessToken,
     refreshToken: newRefreshToken,
+  };
+}
+
+export async function logoutUser(
+  refreshToken: string
+) {
+  const tokenHash = crypto
+    .createHash("sha256")
+    .update(refreshToken)
+    .digest("hex");
+
+  const token = await prisma.refreshToken.findFirst({
+    where: {
+      tokenHash,
+      revokedAt: null,
+    },
+  });
+
+  if (!token) {
+    throw new AppError(
+      401,
+      "Invalid refresh token"
+    );
+  }
+
+  await prisma.refreshToken.update({
+    where: {
+      id: token.id,
+    },
+    data: {
+      revokedAt: new Date(),
+    },
+  });
+
+  return {
+    message: "Logged out successfully",
   };
 }
