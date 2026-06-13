@@ -4,6 +4,7 @@ import authRoutes from "./modules/auth/auth.routes";
 import userRoutes from "./modules/users/users.routes";
 import walletRoutes from "./modules/wallets/wallet.routes";
 import transactionRoutes from "./modules/transactions/transaction.routes";
+import webhookRoutes from "./modules/webhooks/webhook.routes";
 
 import { errorMiddleware } from "./middleware/error.middleware";
 
@@ -11,12 +12,13 @@ const app = express();
 
 app.use(express.json());
 
-app.use("/api/auth", authRoutes);
-app.use("/api/users", userRoutes);
-app.use("/api/wallets", walletRoutes);
-app.use("/api/transactions", transactionRoutes);
+app.use("/auth", authRoutes);
+app.use("/users", userRoutes);
+app.use("/wallets", walletRoutes);
+app.use("/transactions", transactionRoutes);
+app.use("/webhooks", webhookRoutes);
 
-app.get("/api/health", (_, res) => {
+app.get("/health", (_, res) => {
   res.json({
     success: true,
     data: {
